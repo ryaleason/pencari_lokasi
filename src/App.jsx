@@ -3,12 +3,15 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
+
+
 function App() {
   const [count, setCount] = useState(0)
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [accuracy, setAccuracy] = useState(null)
+  const [savedLocations, setSavedLocations] = useState([])
 
   const getLocation = () => {
     if (!navigator.geolocation) {
@@ -84,6 +87,49 @@ function App() {
     return '#ef4444'
   }
 
+  const saveLocationToFile = () => {
+    if (!location) return
+
+    const locationData = {
+      latitude: location.lat,
+      longitude: location.lng,
+      accuracy: location.accuracy,
+      altitude: location.altitude,
+      timestamp: location.timestamp
+    }
+
+    // Tambahkan ke array lokasi tersimpan
+    const updatedLocations = [...savedLocations, locationData]
+    setSavedLocations(updatedLocations)
+
+    // Buat konten file
+    const fileContent = updatedLocations.map((loc, index) => 
+      `Lokasi ${index + 1}:\n` +
+      `Latitude: ${loc.latitude}\n` +
+      `Longitude: ${loc.longitude}\n` +
+      `Akurasi: ±${loc.accuracy.toFixed(2)} meter\n` +
+      `Ketinggian: ${loc.altitude ? loc.altitude.toFixed(2) + ' meter' : 'N/A'}\n` +
+      `Waktu: ${loc.timestamp}\n` +
+      `Google Maps: https://www.google.com/maps?q=${loc.latitude},${loc.longitude}\n` +
+      `-----------------------------------\n`
+    ).join('\n')
+
+    // Buat blob dan download
+    const blob = new Blob([fileContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `lokasi_${new Date().getTime()}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const clearSavedLocations = () => {
+    setSavedLocations([])
+  }
+
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -109,11 +155,51 @@ function App() {
             border: 'none',
             borderRadius: '8px',
             cursor: loading ? 'not-allowed' : 'pointer',
-            fontWeight: '600'
+            fontWeight: '600',
+            marginRight: '10px'
           }}
         >
           {loading ? '🔄 Mencari Lokasi Akurat...' : '📍 Ambil Lokasi'}
         </button>
+
+        {location && (
+          <>
+            <button 
+              onClick={saveLocationToFile}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                marginRight: '10px'
+              }}
+            >
+              💾 Simpan ke File TXT
+            </button>
+
+            {savedLocations.length > 0 && (
+              <button 
+                onClick={clearSavedLocations}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                🗑️ Hapus Semua ({savedLocations.length})
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {error && (
@@ -251,6 +337,47 @@ function App() {
               <li>Anda berada di area terbuka (bukan di dalam gedung)</li>
               <li>Izinkan browser mengakses lokasi Anda</li>
             </ul>
+          </div>
+        </div>
+      )}
+
+      {savedLocations.length > 0 && (
+        <div style={{
+          backgroundColor: '#f0fdf4',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid #86efac',
+          marginTop: '20px'
+        }}>
+          <h3 style={{ marginTop: 0, color: '#166534' }}>
+            📋 Lokasi Tersimpan ({savedLocations.length})
+          </h3>
+          <div style={{ 
+            maxHeight: '300px', 
+            overflowY: 'auto',
+            backgroundColor: 'white',
+            borderRadius: '6px',
+            padding: '15px'
+          }}>
+            {savedLocations.map((loc, index) => (
+              <div key={index} style={{
+                padding: '10px',
+                marginBottom: '10px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '6px',
+                borderLeft: '4px solid #10b981'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                  Lokasi {index + 1}
+                </div>
+                <div style={{ fontSize: '14px', color: '#475569' }}>
+                  {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  {loc.timestamp}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
